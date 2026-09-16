@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elaboratore di formule inverse</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f6f9fc 0%, #e6f0f5 100%);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      width: 100%;
+      max-width: 1000px;
+      border-radius: 2.5rem;
+      box-shadow: 0 25px 40px -12px rgba(0, 20, 30, 0.35), 0 2px 8px rgba(0,0,0,0.08);
+      padding: 2rem 2rem 2.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      transition: all 0.2s;
+    }
+
+    h1 {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-top: 0;
+      margin-bottom: 0.25rem;
+      color: #0b3b4b;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span {
+      background: #0b3b4b;
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.2rem 0.8rem;
+      border-radius: 40px;
+      font-weight: 500;
+      margin-left: 0.5rem;
+    }
+
+    .sottotitolo {
+      color: #2a5c6e;
+      margin-top: -0.2rem;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+      font-weight: 400;
+      border-left: 4px solid #51b0c7;
+      padding-left: 1rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 700px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+      }
+      .card {
+        padding: 1.5rem;
+      }
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      color: #0b3b4b;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    label i {
+      font-size: 1.1rem;
+      opacity: 0.7;
+    }
+
+    .formula-input {
+      width: 100%;
+      padding: 1rem 1.2rem;
+      font-size: 1.3rem;
+      font-family: 'Fira Code', 'Courier New', monospace;
+      background: #f0f7fa;
+      border: 2px solid #c2dae5;
+      border-radius: 1.5rem;
+      outline: none;
+      transition: 0.15s;
+      color: #0a2f3b;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+    }
+
+    .formula-input:focus {
+      border-color: #1f8ba8;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(31, 139, 168, 0.15), inset 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    .variabili-container {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.8rem;
+      background: #e2eef3;
+      padding: 1rem 1.2rem;
+      border-radius: 2rem;
+      margin: 0.5rem 0 0.2rem;
+    }
+
+    .variabili-label {
+      font-weight: 600;
+      color: #124c5e;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+    }
+
+    .var-badge {
+      background: white;
+      border-radius: 40px;
+      padding: 0.35rem 1rem;
+      font-weight: 600;
+      font-family: 'Fira Code', monospace;
+      font-size: 1.2rem;
+      color: #0b3b4b;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border: 1px solid #b8d4e0;
+      transition: 0.1s;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .var-badge:hover {
+      background: #d9edf5;
+      border-color: #1f8ba8;
+    }
+
+    .var-badge.selected {
+      background: #1f8ba8;
+      color: white;
+      border-color: #0d5e76;
+      box-shadow: 0 6px 12px rgba(31, 139, 168, 0.3);
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #1d5a6e;
+    }
+
+    .errore {
+      color: #c0392b;
+      background: #fde8e8;
+      padding: 0.5rem 1rem;
+      border-radius: 40px;
+      font-weight: 500;
+      display: inline-block;
+    }
+
+    .btn {
+      background: #0b3b4b;
+      color: white;
+      border: none;
+      padding: 0.9rem 2rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 60px;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      box-shadow: 0 10px 20px -8px rgba(11, 59, 75, 0.5);
+      letter-spacing: 0.5px;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .btn:hover {
+      background: #145e72;
+      transform: scale(1.01);
+      box-shadow: 0 15px 25px -8px rgba(11, 59, 75, 0.6);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #0b3b4b;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      border: 1px solid #b8d4e0;
+      padding: 0.9rem 1.8rem;
+    }
+
+    .btn-secondary:hover {
+      background: #f0f7fa;
+      color: #0b3b4b;
+    }
+
+    .risultato-box {
+      background: #ffffffd9;
+      backdrop-filter: blur(4px);
+      border-radius: 2rem;
+      padding: 1.8rem 2rem;
+      border: 2px dashed #a7c8d6;
+      margin-top: 1.8rem;
+      transition: 0.2s;
+    }
+
+    .risultato-label {
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #1a657b;
+      margin-bottom: 0.75rem;
+    }
+
+    .risultato-formula {
+      font-family: 'Fira Code', 'Courier New', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: #083344;
+      word-break: break-word;
+      line-height: 1.3;
+      background: #e3f0f5;
+      padding: 0.8rem 1.5rem;
+      border-radius: 1.5rem;
+      display: inline-block;
+      min-width: 200px;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+      border: 1px solid #c2dae5;
+    }
+
+    .placeholder-text {
+      color: #5d7e8c;
+      font-style: italic;
+      font-weight: 400;
+      font-size: 1.4rem;
+    }
+
+    .azioni {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .footnote {
+      margin-top: 2rem;
+      font-size: 0.85rem;
+      color: #4e6d7a;
+      text-align: center;
+      border-top: 1px solid #c2dae5;
+      padding-top: 1.5rem;
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footnote code {
+      background: #d9e9f0;
+      padding: 0.2rem 0.6rem;
+      border-radius: 20px;
+      font-weight: 600;
+      color: #0b3b4b;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>
+    🔄 Elaboratore formule inverse
+    <span>v1.0</span>
+  </h1>
+  <div class="sottotitolo">
+    Isola una variabile da un'equazione — parsing intelligente e semplificazione automatica
+  </div>
+
+  <div class="grid-2">
+    <!-- Colonna sinistra: input formula -->
+    <div class="input-group">
+      <label>
+        <span>📐</span> Equazione di partenza
+      </label>
+      <input type="text" id="formulaInput" class="formula-input" value="a = b * c + d" placeholder="es. a = b * c + d">
+      <div class="status">
+        <span id="messaggioStato">Variabili rilevate:</span>
+        <span id="listaVariabiliPreview" style="font-weight:600;font-family:monospace;">—</span>
+      </div>
+    </div>
+
+    <!-- Colonna destra: variabile target -->
+    <div class="input-group">
+      <label>
+        <span>🎯</span> Variabile da isolare
+      </label>
+      <div class="variabili-container" id="variabiliContainer">
+        <!-- popolato via js -->
+        <span class="variabili-label">Clicca su una variabile:</span>
+        <span id="nessunaVariabile" style="color:#5d7e8c;font-style:italic;">nessuna</span>
+      </div>
+      <div style="font-size:0.85rem; color:#2a5c6e; margin-top:0.3rem;">
+        ⚡ La variabile selezionata verrà espressa in funzione delle altre.
+      </div>
+    </div>
+  </div>
+
+  <div class="azioni">
+    <button class="btn" id="calcolaBtn">
+      <span>🧮</span> Calcola formula inversa
+    </button>
+    <button class="btn btn-secondary" id="resetBtn">
+      <span>↺</span> Reset
+    </button>
+    <button class="btn btn-secondary" id="esempioBtn">
+      <span>📋</span> Esempio
+    </button>
+  </div>
+
+  <!-- RISULTATO -->
+  <div class="risultato-box" id="risultatoBox">
+    <div class="risultato-label">FORMULA INVERSA</div>
+    <div id="risultatoContenuto" class="placeholder-text">
+      Seleziona una variabile e premi "Calcola"
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>✏️ Supporta: +, -, *, /, ^, parentesi</span>
+    <span>🔍 Rileva automaticamente le variabili</span>
+    <span>🧠 Semplificazione algebrica di base</span>
+  </div>
+</div>
+
+<script>
+  (function() {
+    // ---------- RIFERIMENTI DOM ----------
+    const formulaInput = document.getElementById('formulaInput');
+    const variabiliContainer = document.getElementById('variabiliContainer');
+    const listaVariabiliPreview = document.getElementById('listaVariabiliPreview');
+    const risultatoContenuto = document.getElementById('risultatoContenuto');
+    const risultatoBox = document.getElementById('risultatoBox');
+    const calcolaBtn = document.getElementById('calcolaBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const esempioBtn = document.getElementById('esempioBtn');
+
+    // ---------- STATO ----------
+    let variabiliCorrenti = [];          // array di stringhe (nomi variabili)
+    let variabileSelezionata = null;     // stringa o null
+    let equazioneOriginale = 'a = b * c + d'; // default
+
+    // ---------- UTILITY PER IL PARSING DELLE VARIABILI ----------
+    // Rileva le variabili in una stringa di formula.
+    // Una variabile è una sequenza di lettere (a-z, A-Z) opzionalmente seguita da numeri e underscore.
+    // Ignora le parole chiave comuni (funzioni, costanti) per non generare falsi positivi.
+    function estraiVariabili(equazione) {
+      if (!equazione || typeof equazione !== 'string') return [];
+
+      // Separiamo i due lati dell'uguale se presente
+      const parti = equazione.split('=').map(s => s.trim());
+      if (parti.length !== 2) return []; // equazione non valida
+
+      const espressione = parti[0] + ' ' + parti[1];
+
+      // Regex per identificare variabili (lettere seguite da lettere/numeri/underscore)
+      // ma evitiamo di catturare numeri isolati o parole chiave.
+      const regex = /\b([a-zA-Z][a-zA-Z0-9_]*)\b/g;
+      const matchPotenziali = espressione.match(regex) || [];
+
+      // Filtriamo: escludiamo funzioni comuni e costanti (sin, cos, tan, log, ln, exp, pi, e)
+      const daEscludere = new Set([
+        'sin', 'cos', 'tan', 'log', 'ln', 'exp', 'pi', 'e', 'sqrt', 'abs',
+        'asin', 'acos', 'atan', 'sinh', 'cosh', 'tanh'
+      ]);
+
+      const variabiliSet = new Set();
+      for (let token of matchPotenziali) {
+        // Se il token è una parola chiave la saltiamo
+        if (daEscludere.has(token.toLowerCase())) continue;
+        // Se il token inizia con numero? Non dovrebbe perché regex inizia con lettera, ma per sicurezza
+        if (/^\d/.test(token)) continue;
+        variabiliSet.add(token);
+      }
+
+      return Array.from(variabiliSet).sort();
+    }
+
+    // Aggiorna l'interfaccia delle variabili cliccabili
+    function aggiornaVariabiliUI() {
+      const variabili = variabiliCorrenti;
+
+      // Aggiorna anteprima lista variabili (testo)
+      listaVariabiliPreview.textContent = variabili.length ? variabili.join(', ') : '—';
+
+      // Pulisce il contenitore delle variabili
+      variabiliContainer.innerHTML = '';
+
+      if (variabili.length === 0) {
+        const span = document.createElement('span');
+        span.id = 'nessunaVariabile';
+        span.style.color = '#5d7e8c';
+        span.style.fontStyle = 'italic';
+        span.textContent = 'nessuna variabile rilevata';
+        variabiliContainer.appendChild(span);
+        variabileSelezionata = null;
+        return;
+      }
+
+      // Aggiungi etichetta
+      const label = document.createElement('span');
+      label.className = 'variabili-label';
+      label.textContent = 'Clicca su una variabile:';
+      variabiliContainer.appendChild(label);
+
+      // Crea badge per ogni variabile
+      variabili.forEach(varName => {
+        const badge = document.createElement('span');
+        badge.className = 'var-badge' + (variabileSelezionata === varName ? ' selected' : '');
+        badge.textContent = varName;
+        badge.dataset.var = varName;
+        badge.addEventListener('click', () => {
+          // Rimuovi selected da tutti
+          document.querySelectorAll('.var-badge').forEach(b => b.classList.remove('selected'));
+          badge.classList.add('selected');
+          variabileSelezionata = varName;
+        });
+        variabiliContainer.appendChild(badge);
+      });
+
+      // Se la variabile selezionata non è più presente, deseleziona
+      if (variabileSelezionata && !variabili.includes(variabileSelezionata)) {
+        variabileSelezionata = null;
+      }
+
+      // Se c'è una variabile selezionata, evidenziala (dopo la creazione)
+      if (variabileSelezionata) {
+        const selectedBadge = Array.from(document.querySelectorAll('.var-badge')).find(
+          b => b.dataset.var === variabileSelezionata
+        );
+        if (selectedBadge) selectedBadge.classList.add('selected');
+      }
+    }
+
+    // Analizza l'input e aggiorna le variabili
+    function aggiornaDaInput() {
+      const raw = formulaInput.value.trim();
+      equazioneOriginale = raw || 'a = b * c + d'; // fallback
+
+      if (!raw) {
+        variabiliCorrenti = [];
+        variabileSelezionata = null;
+        aggiornaVariabiliUI();
+        return;
+      }
+
+      const vars = estraiVariabili(raw);
+      variabiliCorrenti = vars;
+
+      // Se la variabile selezionata non è più presente, resettala
+      if (variabileSelezionata && !vars.includes(variabileSelezionata)) {
+        variabileSelezionata = null;
+      }
+      // Se non c'è variabile selezionata e ce ne sono, non forziamo la selezione automatica
+      aggiornaVariabiliUI();
+    }
+
+    // ---------- LOGICA DI ELABORAZIONE FORMULA INVERSA ----------
+    // Funzione principale: data equazione (stringa) e variabile target,
+    // restituisce la formula inversa (stringa) o un messaggio di errore.
+    function invertiFormula(equazione, target) {
+      if (!equazione || !target) return { ok: false, msg: 'Inserisci equazione e seleziona una variabile.' };
+
+      // Dividi in lhs e rhs
+      const parti = equazione.split('=').map(s => s.trim());
+      if (parti.length !== 2) {
+        return { ok: false, msg: 'Equazione non valida: manca il segno "=" o ce ne sono più di uno.' };
+      }
+
+      let lhs = parti[0];
+      let rhs = parti[1];
+
+      // Normalizza: rimuovi spazi extra
+      lhs = lhs.replace(/\s+/g, '');
+      rhs = rhs.replace(/\s+/g, '');
+
+      // Verifica che il target esista nell'equazione (in entrambi i lati)
+      const tutteVariabili = estraiVariabili(equazione);
+      if (!tutteVariabili.includes(target)) {
+        return { ok: false, msg: `La variabile "${target}" non compare nell'equazione.` };
+      }
+
+      // -----------------------------------------------------------------
+      // Strategia: portiamo tutto a sinistra (lhs - rhs = 0)
+      // e risolviamo rispetto a target usando manipolazioni algebriche di base.
+      // Poiché l'utente può inserire equazioni semplici, implementiamo
+      // un risolutore simbolico elementare basato su casi.
+      // -----------------------------------------------------------------
+
+      // Caso 1: target è da solo a sinistra (lhs === target)
+      if (lhs === target) {
+        // L'equazione è già target = rhs, ma potremmo dover semplificare
+        // Se rhs contiene target, non va bene (dovremmo isolare)
+        if (rhs.includes(target)) {
+          // es. a = a + b -> impossibile / semplificazione
+          return risolviEquazioneGenerica(lhs, rhs, target);
+        }
+        // Semplifica rhs
+        const rhsSemplificato = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = ${rhsSemplificato}` };
+      }
+
+      // Caso 2: target è a destra e lhs è una singola variabile diversa
+      if (rhs === target && !lhs.includes(target)) {
+        // lhs = target  ->  target = lhs
+        const lhsSemplificato = semplificaEspressione(lhs);
+        return { ok: true, msg: `${target} = ${lhsSemplificato}` };
+      }
+
+      // Altrimenti, proviamo a risolvere con un approccio generico
+      return risolviEquazioneGenerica(lhs, rhs, target);
+    }
+
+    // Risoluzione generica: cerca di isolare target in lhs = rhs.
+    // Usa un approccio a "bilanciamento" con operazioni inverse.
+    // Supporta equazioni lineari semplici del tipo: target + A = B, target * A = B, A / target = B, target / A = B, target^2 = B (limitato)
+    // e casi con più termini.
+    function risolviEquazioneGenerica(lhs, rhs, target) {
+      // Pulizia: rimuovi spazi
+      lhs = lhs.replace(/\s+/g, '');
+      rhs = rhs.replace(/\s+/g, '');
+
+      // Se il target non è presente né a sinistra né a destra -> errore
+      if (!lhs.includes(target) && !rhs.includes(target)) {
+        return { ok: false, msg: `La variabile "${target}" non è presente nell'equazione.` };
+      }
+
+      // Caso A: target è da solo a sinistra (lhs === target)
+      if (lhs === target) {
+        if (rhs.includes(target)) {
+          return { ok: false, msg: `Impossibile isolare "${target}": compare in entrambi i membri.` };
+        }
+        const rhsSempl = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = ${rhsSempl}` };
+      }
+
+      // Caso B: target è da solo a destra (rhs === target)
+      if (rhs === target) {
+        if (lhs.includes(target)) {
+          return { ok: false, msg: `Impossibile isolare "${target}": compare in entrambi i membri.` };
+        }
+        const lhsSempl = semplificaEspressione(lhs);
+        return { ok: true, msg: `${target} = ${lhsSempl}` };
+      }
+
+      // Caso C: target compare in lhs e non in rhs (o viceversa) -> isoliamo
+      // Se target è in rhs e non in lhs, scambiamo i lati per comodità
+      if (rhs.includes(target) && !lhs.includes(target)) {
+        [lhs, rhs] = [rhs, lhs]; // scambia
+      }
+
+      // Ora target è in lhs (a sinistra) e non in rhs (a destra) (si spera)
+      // Possiamo provare a spostare i termini.
+
+      // Sottocaso C1: lhs è una somma algebrica che contiene target
+      // Es. target + b = c  -> target = c - b
+      //     target - b = c  -> target = c + b
+      //     b + target = c  -> target = c - b
+      //     b - target = c  -> -target = c - b -> target = b - c
+      // Riconosciamo pattern semplici con + e - a livello top (fuori parentesi)
+
+      // Funzione per dividere una espressione in termini additivi (rispettando parentesi e segni)
+      function splitAdditive(expr) {
+        const termini = [];
+        let depth = 0;
+        let current = '';
+        for (let i = 0; i < expr.length; i++) {
+          const ch = expr[i];
+          if (ch === '(') depth++;
+          if (ch === ')') depth--;
+          if (depth === 0 && (ch === '+' || ch === '-') && i > 0) {
+            // controlla che non sia un operatore unario (es. -3)
+            const prev = expr[i-1];
+            if (prev === '(' || prev === '+' || prev === '-' || prev === '*' || prev === '/' || prev === '^') {
+              // è un segno unario, non dividere
+              current += ch;
+            } else {
+              // è un operatore binario: push del termine corrente e inizia nuovo
+              if (current !== '') termini.push(current);
+              current = ch; // includi il segno per il prossimo termine
+            }
+          } else {
+            current += ch;
+          }
+        }
+        if (current !== '') termini.push(current);
+        return termini;
+      }
+
+      const terminiLhs = splitAdditive(lhs);
+      // Se ci sono più termini e uno contiene target, possiamo isolarlo
+      let termineConTarget = null;
+      let altriTermini = [];
+      for (let t of terminiLhs) {
+        if (t.includes(target)) {
+          if (termineConTarget !== null) {
+            // target appare in più termini -> troppo complesso
+            return { ok: false, msg: `Impossibile isolare "${target}" con metodi automatici (compare in più termini).` };
+          }
+          termineConTarget = t;
+        } else {
+          altriTermini.push(t);
+        }
+      }
+
+      if (termineConTarget === null) {
+        // target non nei termini additivi? forse è dentro una moltiplicazione
+        // passiamo ad altri metodi
+      } else {
+        // Abbiamo un termine con target e altri termini.
+        // Spostiamo gli altri termini a destra cambiando segno
+        // es. lhs = termineConTarget + altriTermini = rhs
+        // termineConTarget = rhs - altriTermini
+        // dobbiamo gestire i segni: se altriTermini hanno segno +, diventano - e viceversa
+        let rhsNuovo = rhs;
+        for (let t of altriTermini) {
+          if (t.startsWith('+')) {
+            rhsNuovo += '-' + t.substring(1);
+          } else if (t.startsWith('-')) {
+            rhsNuovo += '+' + t.substring(1);
+          } else {
+            // termine positivo implicito
+            rhsNuovo += '-' + t;
+          }
+        }
+        // Ora lhs è termineConTarget = rhsNuovo
+        // Semplifica il termine con target: rimuovi eventuali + iniziali
+        let terminePulito = termineConTarget;
+        if (terminePulito.startsWith('+')) terminePulito = terminePulito.substring(1);
+        // Se terminePulito è esattamente target, fatto
+        if (terminePulito === target) {
+          const rhsSempl = semplificaEspressione(rhsNuovo);
+          return { ok: true, msg: `${target} = ${rhsSempl}` };
+        }
+        // Altrimenti il termine con target è una sottoespressione, es. 2*target, target*3, target/2, 2/target, target^2
+        // Prova a isolare ulteriormente
+        return isolaDaTermine(terminePulito, rhsNuovo, target);
+      }
+
+      // Se target è dentro una moltiplicazione/divisione in lhs
+      // Proviamo a vedere se lhs è della forma: A * target = rhs, target * A = rhs, A / target = rhs, target / A = rhs, target^n = rhs
+      // Riconosciamo pattern semplici usando espressioni regolari
+      return isolaDaTermine(lhs, rhs, target);
+    }
+
+    // Isola target da un termine che lo contiene (es. "2*target", "target/3", "a*target", "target^2")
+    function isolaDaTermine(termine, rhs, target) {
+      // Rimuovi spazi
+      termine = termine.replace(/\s+/g, '');
+      rhs = rhs.replace(/\s+/g, '');
+
+      // Se il termine è esattamente target
+      if (termine === target) {
+        const rhsSempl = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = ${rhsSempl}` };
+      }
+
+      // Pattern: target * qualcosa  o  qualcosa * target
+      // es. "2*target", "a*target", "target*b", "target*2"
+      const mulPattern1 = new RegExp(`^(.+)\\*${target}$`);  // qualcosa * target
+      const mulPattern2 = new RegExp(`^${target}\\*(.+)$`);  // target * qualcosa
+
+      let match;
+      if ((match = termine.match(mulPattern1))) {
+        const altro = match[1];
+        if (altro.includes(target)) return { ok: false, msg: `Impossibile isolare "${target}" (compare più volte).` };
+        // termine = altro * target = rhs  => target = rhs / altro
+        const rhsSempl = semplificaEspressione(rhs);
+        const altroSempl = semplificaEspressione(altro);
+        // Se altroSempl è "1", allora target = rhs
+        if (altroSempl === '1') return { ok: true, msg: `${target} = ${rhsSempl}` };
+        return { ok: true, msg: `${target} = ${rhsSempl} / ${altroSempl}` };
+      }
+
+      if ((match = termine.match(mulPattern2))) {
+        const altro = match[1];
+        if (altro.includes(target)) return { ok: false, msg: `Impossibile isolare "${target}" (compare più volte).` };
+        const rhsSempl = semplificaEspressione(rhs);
+        const altroSempl = semplificaEspressione(altro);
+        if (altroSempl === '1') return { ok: true, msg: `${target} = ${rhsSempl}` };
+        return { ok: true, msg: `${target} = ${rhsSempl} / ${altroSempl}` };
+      }
+
+      // Pattern: target / qualcosa
+      const divPattern1 = new RegExp(`^${target}/(.+)$`);
+      if ((match = termine.match(divPattern1))) {
+        const denominatore = match[1];
+        if (denominatore.includes(target)) return { ok: false, msg: `Impossibile isolare "${target}" (compare al denominatore e altrove).` };
+        // target / D = rhs  => target = rhs * D
+        const rhsSempl = semplificaEspressione(rhs);
+        const denSempl = semplificaEspressione(denominatore);
+        return { ok: true, msg: `${target} = ${rhsSempl} * ${denSempl}` };
+      }
+
+      // Pattern: qualcosa / target
+      const divPattern2 = new RegExp(`^(.+)/${target}$`);
+      if ((match = termine.match(divPattern2))) {
+        const numeratore = match[1];
+        if (numeratore.includes(target)) return { ok: false, msg: `Impossibile isolare "${target}" (compare al numeratore e altrove).` };
+        // N / target = rhs  => target = N / rhs
+        const rhsSempl = semplificaEspressione(rhs);
+        const numSempl = semplificaEspressione(numeratore);
+        return { ok: true, msg: `${target} = ${numSempl} / ${rhsSempl}` };
+      }
+
+      // Pattern: target^2 = rhs  (solo radice quadrata)
+      if (termine === `${target}^2`) {
+        const rhsSempl = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = sqrt(${rhsSempl})` };
+      }
+      // target^n = rhs per n generico? Limitiamoci a n=2
+
+      // Pattern: -(target) o +target
+      if (termine === `-${target}`) {
+        const rhsSempl = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = -(${rhsSempl})` };
+      }
+      if (termine === `+${target}`) {
+        const rhsSempl = semplificaEspressione(rhs);
+        return { ok: true, msg: `${target} = ${rhsSempl}` };
+      }
+
+      // Se arriviamo qui, il pattern non è riconosciuto
+      return { ok: false, msg: `Impossibile isolare "${target}" con il risolutore automatico. Prova con un'equazione più semplice.` };
+    }
+
+    // Semplificazione basilare di espressioni (rimuove +0, *1, --, spazi, semplifica segni)
+    function semplificaEspressione(expr) {
+      if (!expr) return expr;
+      let s = expr.replace(/\s+/g, '');
+
+      // Rimuovi doppi segni
+      s = s.replace(/\+-/g, '-');
+      s = s.replace(/-\+/g, '-');
+      s = s.replace(/--/g, '+');
+
+      // Rimuovi +0 e -0 (ma non se fa parte di un numero più grande)
+      s = s.replace(/\+0(?![0-9])/g, '');
+      s = s.replace(/-0(?![0-9])/g, '');
+
+      // Rimuovi *1 e 1* (ma non se parte di un numero come 11)
+      s = s.replace(/\*1(?![0-9])/g, '');
+      s = s.replace(/(?<![0-9])1\*/g, '');
+
+      // Rimuovi (expr) se expr è una singola variabile o numero? per ora lascia
+      // Se inizia con +, togli il +
+      if (s.startsWith('+')) s = s.substring(1);
+
+      // Se è vuoto, restituisci '0'
+      if (s === '') s = '0';
+
+      return s;
+    }
+
+    // ---------- GESTIONE EVENTI E UI ----------
+    function eseguiCalcolo() {
+      const eq = formulaInput.value.trim() || 'a = b * c + d';
+      if (!eq) {
+        risultatoContenuto.textContent = 'Inserisci un\'equazione.';
+        risultatoContenuto.className = 'placeholder-text';
+        return;
+      }
+
+      // Rileva variabili aggiornate
+      const vars = estraiVariabili(eq);
+      variabiliCorrenti = vars;
+      aggiornaVariabiliUI();
+
+      if (vars.length === 0) {
+        risultatoContenuto.textContent = 'Nessuna variabile trovata nell\'equazione.';
+        risultatoContenuto.className = 'placeholder-text';
+        return;
+      }
+
+      if (!variabileSelezionata || !vars.includes(variabileSelezionata)) {
+        // Se nessuna variabile selezionata, prova a selezionare la prima?
+        // Meglio chiedere all'utente di selezionare
+        risultatoContenuto.textContent = 'Seleziona una variabile cliccando su un badge.';
+        risultatoContenuto.className = 'placeholder-text';
+        return;
+      }
+
+      // Esegui inversione
+      const risultato = invertiFormula(eq, variabileSelezionata);
+
+      if (risultato.ok) {
+        risultatoContenuto.textContent = risultato.msg;
+        risultatoContenuto.className = ''; // rimuovi placeholder
+        risultatoBox.style.borderColor = '#1f8ba8';
+        risultatoBox.style.background = '#ffffff';
+      } else {
+        risultatoContenuto.textContent = '⚠️ ' + risultato.msg;
+        risultatoContenuto.className = 'placeholder-text';
+        risultatoBox.style.borderColor = '#e6b0b0';
+        risultatoBox.style.background = '#fff7f7';
+      }
+    }
+
+    // Reset: ripristina formula di default e azzera selezione
+    function resetTutto() {
+      formulaInput.value = 'a = b * c + d';
+      equazioneOriginale = 'a = b * c + d';
+      variabileSelezionata = null;
+      aggiornaDaInput();
+      risultatoContenuto.textContent = 'Seleziona una variabile e premi "Calcola"';
+      risultatoContenuto.className = 'placeholder-text';
+      risultatoBox.style.borderColor = '#a7c8d6';
+      risultatoBox.style.background = '#ffffffd9';
+    }
+
+    // Esempio: carica un'equazione di esempio con variabili
+    function caricaEsempio() {
+      formulaInput.value = 'v = s / t';
+      equazioneOriginale = 'v = s / t';
+      variabileSelezionata = null; // resetta selezione
+      aggiornaDaInput();
+      // Prova a selezionare automaticamente 't'? No, lasciamo all'utente.
+      risultatoContenuto.textContent = 'Esempio caricato: seleziona "t" e premi Calcola';
+      risultatoContenuto.className = 'placeholder-text';
+      risultatoBox.style.borderColor = '#a7c8d6';
+      risultatoBox.style.background = '#ffffffd9';
+    }
+
+    // ---------- INIZIALIZZAZIONE ----------
+    function init() {
+      // Imposta valore iniziale
+      formulaInput.value = 'a = b * c + d';
+      equazioneOriginale = 'a = b * c + d';
+      aggiornaDaInput();
+
+      // Event listener
+      formulaInput.addEventListener('input', () => {
+        aggiornaDaInput();
+        // Reset risultato quando si modifica l'input
+        risultatoContenuto.textContent = 'Premi "Calcola" per ottenere la formula inversa';
+        risultatoContenuto.className = 'placeholder-text';
+        risultatoBox.style.borderColor = '#a7c8d6';
+      });
+
+      calcolaBtn.addEventListener('click', eseguiCalcolo);
+      resetBtn.addEventListener('click', resetTutto);
+      esempioBtn.addEventListener('click', caricaEsempio);
+
+      // Tasto invio nell'input
+      formulaInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          eseguiCalcolo();
+        }
+      });
+
+      // Selezione iniziale automatica? No, ma se l'utente clicca su calcola senza selezione, avvisa.
+    }
+
+    init();
+  })();
+</script>
+</body>
+</html>
